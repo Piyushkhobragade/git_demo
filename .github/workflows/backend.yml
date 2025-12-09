@@ -1,28 +1,5 @@
       - name: Setup SSH
-        env:
-          EC2_HOST: ${{ secrets.EC2_HOST }}
-          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
         run: |
-          echo "DEBUG: EC2_HOST='$EC2_HOST'"
-          if [ -z "$EC2_HOST" ]; then
-            echo "ERROR: EC2_HOST secret is empty or not set"
-            exit 1
-          fi
-
-          if [ -z "$SSH_PRIVATE_KEY" ]; then
-            echo "ERROR: SSH_PRIVATE_KEY secret is empty or not set"
-            exit 1
-          fi
-
           mkdir -p ~/.ssh
-          printf '%s\n' "$SSH_PRIVATE_KEY" > ~/.ssh/deploy_key
+          printf '%s\n' "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/deploy_key
           chmod 600 ~/.ssh/deploy_key
-
-          # add host to known_hosts (ignore noisy output)
-          ssh-keyscan -H "$EC2_HOST" >> ~/.ssh/known_hosts 2>/dev/null || {
-            echo "ERROR: ssh-keyscan failed for host $EC2_HOST"
-            exit 1
-          }
-
-          chmod 644 ~/.ssh/known_hosts
-          echo "SSH setup completed."
