@@ -1,23 +1,3 @@
-name: CI/CD - Backend Deploy to EC2
-
-on:
-  push:
-    branches: ["main"]
-
-jobs:
-  deploy:
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout repo
-        uses: actions/checkout@v4
-
-      - name: Setup SSH (simple clean)
-        run: |
-          mkdir -p ~/.ssh
-          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/deploy_key
-          chmod 600 ~/.ssh/deploy_key
-
       - name: Deploy to EC2 (pull latest backend & restart)
         env:
           EC2_HOST: ${{ secrets.EC2_HOST }}
@@ -25,29 +5,7 @@ jobs:
           EC2_PORT: ${{ secrets.EC2_SSH_PORT }}
         run: |
           if [ -z "$EC2_PORT" ]; then
-            EC2_PORT=22
+            EC2_PORT=***
           fi
 
           ssh -o StrictHostKeyChecking=no -i ~/.ssh/deploy_key -p "$EC2_PORT" "$EC2_USER@$EC2_HOST" << 'EOF'
-            set -e
-            cd ~
-
-            if [ ! -d git_demo ]; then
-              git clone https://github.com/Piyushkhobragade/git_demo.git
-              cd git_demo
-            else
-              cd git_demo
-              git fetch --all --prune
-              git reset --hard origin/main
-            fi
-
-            if [ -d Backend ]; then
-              cd Backend
-            fi
-
-            if command -v systemctl >/dev/null 2>&1; then
-              if sudo systemctl list-units --type=service | grep -q "backend.service"; then
-                sudo systemctl restart backend.service
-              fi
-            fi
-          EOF
