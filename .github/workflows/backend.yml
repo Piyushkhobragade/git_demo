@@ -1,5 +1,72 @@
-      - name: Setup SSH
+name: CI/CD - Backend Deploy to EC2
+
+on:
+  push:
+    branches: ["main"]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Setup SSH (simple)
         run: |
           mkdir -p ~/.ssh
           printf '%s\n' "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/deploy_key
           chmod 600 ~/.ssh/deploy_key
+
+      - name: Deploy to EC2 (pull latest backend & restart)
+        env:
+          EC2_HOST: ${{ secrets.EC2_HOST }}
+          EC2_USER: ${{ secrets.EC2_USER }}
+          EC2_PORT: ${{ secrets.EC2_SSH_PORT }}
+        run: |
+          if [ -z "$EC2_PORT" ]; then
+            EC2_PORT=22
+          fi
+
+          echo "Connecting to $EC2_USER@$EC2_HOST on port $EC2_PORT..."
+
+          ssh -i ~/.ssh/deploy_key \
+              -p "$EC2_PORT" \
+              -o StrictHostKeyChecking=no \
+              "$EC2_USER@$EC2_HOST" << 'EOF'
+            set -e
+            echo "=== Connected to EC2: $(hostname) ==="
+
+            cd ~
+
+            if [ ! -d git_demo ]; then
+              echo "Repo not found. Cloning..."
+              git clone https://github.com/Piyushkhobragade/git_demo.git
+              cd git_demo
+            else
+              echo "Repo exists. Updating..."
+              cd git_demo
+              git fetch --all --prune
+              git reset --hard origin/main
+            fi
+
+            if [ -d Backend ]; then
+              cd Backend
+            fi
+
+            echo "Code updated."
+
+            if command -v systemctl >/dev/null 2>&1; then
+              if sudo systemctl list-units --type=service | grep -q "backend.service"; then
+                echo "Restarting backend.service..."
+                sudo systemctl restart backend.service
+                sleep 2
+                sudo systemctl status backend.service --no-pager -n 20 || true
+              else
+                echo "backend.service not found, skipping restart."
+              fi
+            else
+              echo "systemctl not available, skipping restart."
+            fi
+
+            echo "===
