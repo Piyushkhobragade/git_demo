@@ -1,0 +1,71 @@
+name: CI/CD - Backend Deploy to EC2
+
+on:
+  push:
+    branches: ["main"]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Setup SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H "${{ secrets.EC2_HOST }}" >> ~/.ssh/known_hosts
+          chmod 644 ~/.ssh/known_hosts
+
+      - name: Deploy to EC2 (pull latest backend & restart)
+        run: |
+          EC2_USER="${{ secrets.EC2_USER }}"
+          EC2_HOST="${{ secrets.EC2_HOST }}"
+          EC2_PORT="${{ secrets.EC2_SSH_PORT }}"
+
+          if [ -z "$EC2_PORT" ]; then
+            EC2_PORT=22
+          fi
+
+          ssh -i ~/.ssh/deploy_key -p "$EC2_PORT" -o StrictHostKeyChecking=yes "$EC2_USER@$EC2_HOST" << 'EOF'
+            set -e
+            echo "=== Connected to EC2: $(hostname) ==="
+
+            cd ~
+
+            if [ ! -d git_demo ]; then
+              echo "Repo not found. Cloning..."
+              git clone https://github.com/Piyushkhobragade/git_demo.git
+              cd git_demo
+            else
+              echo "Repo exists. Updating..."
+              cd git_demo
+              git fetch --all --prune
+              git reset --hard origin/main
+            fi
+
+            if [ -d Backend ]; then
+              cd Backend
+            fi
+
+            echo "Code updated. Attempting to restart backend..."
+
+            if command -v systemctl >/dev/null 2>&1; then
+              if sudo systemctl list-units --type=service | grep -q "backend.service"; then
+                sudo systemctl restart backend.service
+                sleep 2
+                sudo systemctl status backend.service --no-pager -n 20 || true
+                echo "backend.service restart command sent."
+              else
+                echo "backend.service not found. Skipping systemd restart."
+              fi
+            else
+              echo "systemctl not available on this machine."
+            fi
+
+            echo "=== Deploy script finished ==="
+          EOF
+
