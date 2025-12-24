@@ -2,7 +2,7 @@
 
 This project is a full cloud infrastructure setup built using AWS services, Terraform, GitHub Actions, EC2, RDS, S3, and CloudFront. It is designed to simulate a real DevOps environment with automation, monitoring, security, CI/CD, and cost optimization.
 
-## 🚀 Architecture Overview
+## Architecture Overview
 - **Frontend:** S3 + CloudFront (HTTPS enforced)
 - **Backend:** EC2 instance
 - **Database:** RDS MySQL (private, not public)
@@ -10,7 +10,7 @@ This project is a full cloud infrastructure setup built using AWS services, Terr
 - **Automation:** Terraform infrastructure + GitHub Actions CI/CD
 - **Security:** IAM least-privilege, SG hardening, access key rotation
 
-## 📂 Repository Structure
+## Repository Structure
 
 Frontend → S3 → CloudFront  
 Backend → EC2 → CloudWatch  
@@ -24,19 +24,19 @@ Terraform manages:
 - Security groups  
 - CloudWatch  
 
-## 🔒 Security
+## Security
 - RDS is **not public**
 - Security groups allow **only required traffic**
 - IAM policy for GitHub Actions is **least privilege**
 - Access keys rotated
 - HTTPS forced using CloudFront
 
-## 💸 Cost Optimization
+##  Cost Optimization
 - EC2 → t3.micro  
 - RDS → db.t4g.micro  
 - S3 lifecycle rules enabled  
 - Estimated monthly cost: **₹2000–₹2800**
 
-## 🧑‍💻 Author
+##  Author
 **Piyush Khobragade**
 
